@@ -1,0 +1,64 @@
+ # Continuous Integration (CI) Job
+
+name: Next.js CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        # Automatically caches npm/yarn dependencies based on lock files
+        cache: 'npm' 
+
+    # Next.js builds generate a .next/cache folder. 
+    # Persisting this cache drastically reduces your build times.
+    - name: Next.js Cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}/.next/cache
+        # Generates a new cache key whenever your lock file or source files change
+        key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+        restore-keys: |
+          ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Run Linter
+      run: npm run lint
+
+    - name: Build Next.js Application
+      run: npm run build
+
+    # Uncomment this step if you have a testing suite configured (e.g., Jest, Playwright)
+    # - name: Run Tests
+    #   run: npm test
+
+
+# CD  # Continuous Deployment (CD) Job (Optional)
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Deploy to Cloud
+      run: |
+        echo "Insert your specific cloud deployment CLI commands here."
+        # Example: Vercel, AWS Amplify, Netlify, or Docker push commands
